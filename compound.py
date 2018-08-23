@@ -28,6 +28,7 @@ class Compound:
 			print 'Wind warning!'
 	def WINDStart(self):
 		self.errorid=w.start()
+		self.errorid=self.errorid.ErrorCode
 		if self.errorid==0:
 			pass
 		else:

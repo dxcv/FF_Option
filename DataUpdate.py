@@ -12,14 +12,17 @@ import os
 from datetime import timedelta, datetime
 from time import sleep
 
+import win32com.client
+
 class DataDownLoadProcess:
 	def __init__(self):
 		self.WINDStart()
 		if self.errorid==0:
+			self.ShiborUpdate()
 			self.MOptionDownLoad()
 			self.SROptionDownLoad()
 			self.SRFutureDownLoad()
-			self.MFutureDownload()
+			self.MFutureDownLoad()
 			self.MFutureDataProcess()
 			self.MOptionDataProcess()
 			self.SRFutureDataProcess()
@@ -29,6 +32,7 @@ class DataDownLoadProcess:
 			print 'Wind warning!'
 	def WINDStart(self):
 		self.errorid=w.start()
+		self.errorid=self.errorid.ErrorCode
 		if self.errorid==0:
 			pass
 		else:
@@ -36,6 +40,16 @@ class DataDownLoadProcess:
 	def strsub(self,num):
 		num=int(num)-1
 		return str(num)
+	def ShiborUpdate(self):
+		path = 'C:/Users/fsd/OneDrive/Python/founder_future/shibor.xlsx' #比如填文件的绝对路径，比如d:/file/stock.xlsx
+		xl = win32com.client.DispatchEx("Excel.Application")
+		workbook = xl.Workbooks.Open(path)
+		xl.Visible = False 
+		workbook.RefreshAll()
+		workbook.Save()
+		# time.sleep(3) #如果文件足够大，那么最好是在关闭excel之前保持几秒钟
+		workbook.Close(True)
+		xl.Quit()
 	def MOptionDownLoad(self):
 		rootdirdownload='C:/Users/fsd/OneDrive/Python/founder_future/MOption/'
 		listdownload=os.listdir(rootdirdownload)
@@ -100,14 +114,13 @@ class DataDownLoadProcess:
 
 		M_url='http://www.dce.com.cn/publicweb/quotesdata/exportDayQuotesChData.html'
 		MCheck_url='http://www.dce.com.cn/publicweb/quotesdata/dayQuotesCh.html'
-		strr=''
-		while strr=='':
-			for number,daytime in enumerate(dayIndex):
-				year=daytime[:4]
-				month=self.strsub(daytime[5:7])
-				day=daytime[8:10]
-				tempdate=daytime[:4]+daytime[5:7]+daytime[8:10]
-				data={
+		
+		for number,daytime in enumerate(dayIndex):
+			year=daytime[:4]
+			month=self.strsub(daytime[5:7])
+			day=daytime[8:10]
+			tempdate=daytime[:4]+daytime[5:7]+daytime[8:10]
+			data={
 						'dayQuotes.variety': 'm',
 						'dayQuotes.trade_type': '0',
 						'year': year,
@@ -115,19 +128,19 @@ class DataDownLoadProcess:
 						'day': day,
 						'exportFlag': 'excel',
 						}
-				MCheck_url='http://www.dce.com.cn/publicweb/quotesdata/dayQuotesCh.html'
+			MCheck_url='http://www.dce.com.cn/publicweb/quotesdata/dayQuotesCh.html'
 					#headers = {'Connection': 'close',}
 					#tp=requests.post(MCheck_url,data=data,headers=headers)
-				tp=requests.post(MCheck_url,data=data)
-				html_soup=BeautifulSoup(tp.content,'lxml')
-				ftp=html_soup.find_all('div',class_='tradeResult02')
+			tp=requests.post(MCheck_url,data=data)
+			html_soup=BeautifulSoup(tp.content,'lxml')
+			ftp=html_soup.find_all('div',class_='tradeResult02')
 					#print ftp
-				if ftp[0].text[-5:-1]==u'暂无数据':
-					pass
-				else:
-					tq=requests.post(M_url,data=data)
-					with open(rootdirdownload+tempdate+"_Future_Daily.xls",'wb') as f:
-						f.write(tq.content)
+			if ftp[0].text[-5:-1]==u'暂无数据':
+				pass
+			else:
+				tq=requests.post(M_url,data=data)
+				with open(rootdirdownload+tempdate+"_Future_Daily.xls",'wb') as f:
+					f.write(tq.content)
 	def SROptionDownLoad(self):
 		rootdirdownload='C:/Users/fsd/OneDrive/Python/founder_future/SOption/'
 		listdownload=os.listdir(rootdirdownload)
@@ -150,12 +163,13 @@ class DataDownLoadProcess:
 			month=self.strsub(daytime[5:7])
 			day=daytime[8:10]
 			tempdate=daytime[:4]+daytime[5:7]+daytime[8:10]
-			SR_url_check='http://www.czce.com.cn/portal/DFSStaticFiles/Option/'+year+'/'+tempdate+'/OptionDataDaily.htm'
-			SR_url='http://www.czce.com.cn/portal/DFSStaticFiles/Option/'+year+'/'+tempdate+'/OptionDataDaily.xls'
+			SR_url_check='http://www.czce.com.cn/cn/DFSStaticFiles/Option/'+year+'/'+tempdate+'/OptionDataDaily.htm'
+			SR_url='http://www.czce.com.cn/cn/DFSStaticFiles/Option/'+year+'/'+tempdate+'/OptionDataDailySR.xls'
 			tp=requests.get(SR_url_check)
 			html_soup=BeautifulSoup(tp.content,'lxml')
 			ftp=html_soup.find_all('title')
-			if ftp[0].text==u'错误页面':
+			print ftp
+			if ftp==[]:
 				pass
 			else:
 				tq=requests.get(SR_url)
@@ -183,12 +197,12 @@ class DataDownLoadProcess:
 			month=self.strsub(daytime[5:7])
 			day=daytime[8:10]
 			tempdate=daytime[:4]+daytime[5:7]+daytime[8:10]
-			SR_url_check='http://www.czce.com.cn/portal/DFSStaticFiles/Future/'+year+'/'+tempdate+'/FutureDataDailySR.htm'
-			SR_url='http://www.czce.com.cn/portal/DFSStaticFiles/Future/'+year+'/'+tempdate+'/FutureDataDailySR.xls'
+			SR_url_check='http://www.czce.com.cn/cn/DFSStaticFiles/Future/'+year+'/'+tempdate+'/FutureDataDailySR.htm'
+			SR_url='http://www.czce.com.cn/cn/DFSStaticFiles/Future/'+year+'/'+tempdate+'/FutureDataDailySR.xls'
 			tp=requests.get(SR_url_check)
 			html_soup=BeautifulSoup(tp.content,'lxml')
 			ftp=html_soup.find_all('title')
-			if ftp[0].text==u'错误页面':
+			if ftp==[]:
 				pass
 			else:
 				tq=requests.get(SR_url)
@@ -215,7 +229,7 @@ class DataDownLoadProcess:
 			data.to_excel(writer,u'豆粕期货日行情数据')
 			writer.save()
 	def MOptionDataProcess(self):
-		rootdir = 'C:/Users/fsd/OneDrive/Python/founder_future/MOption'
+		rootdir = 'C:/Users/fsd/OneDrive/Python/founder_future/MOption/'
 		rootdir2='C:/Users/fsd/OneDrive/Python/founder_future/MOption_Data_Processed/'
 		list1 = os.listdir(rootdir) #列出文件夹下所有的目录与文件
 		list2=os.listdir(rootdir2)
@@ -229,7 +243,7 @@ class DataDownLoadProcess:
 				date=tempdate[:4]+'-'+tempdate[4:6]+'-'+tempdate[6:8]
 				
 					
-				data=pd.read_excel(rootdir+templist)	  
+				data=pd.read_excel(rootdir+templist)
 				for col in data.columns:
 					if data[col].dtype==float:
 						pass
@@ -247,8 +261,8 @@ class DataDownLoadProcess:
 					i=i+'.DCE'
 					strr=strr+i+','
 				strr=strr[:-1]
-				dataptm=w.wsd(strr, "ptmtradeday", date, date, "")
-				print dataptm
+				dataptm=w.wsd(strr, "ptmtradeday", date, date, "ShowBlank=0")
+				#print dataptm
 				
 				dataptmtemp=pd.DataFrame(dataptm.Data,columns=dataptm.Codes,index=dataptm.Fields).T
 			   
